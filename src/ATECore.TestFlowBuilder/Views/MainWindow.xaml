@@ -1,0 +1,513 @@
+<Window x:Class="ATECore.TestFlowBuilder.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:ATECore.TestFlowBuilder.Models"
+        xmlns:vm="clr-namespace:ATECore.TestFlowBuilder.ViewModels"
+        xmlns:v="clr-namespace:ATECore.TestFlowBuilder.Views"
+        Title="Test Flow Builder — ATECore"
+        Icon="pack://application:,,,/Assets/Icons/app.ico"
+        Width="1440" Height="900" MinWidth="1100" MinHeight="640"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="{StaticResource BodyFont}"
+        FontSize="13"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <Window.Resources>
+        <v:UpperCaseConverter x:Key="Upper"/>
+
+        <!-- Assistant chat bubble -->
+        <DataTemplate x:Key="ChatItem" DataType="{x:Type vm:ChatMessageViewModel}">
+            <StackPanel x:Name="Row" Margin="0,0,0,14" HorizontalAlignment="Left">
+                <TextBlock Style="{StaticResource Kicker}" Text="{Binding Who, Converter={StaticResource Upper}}" Margin="0,0,0,4"/>
+                <Border x:Name="Bubble" Padding="12,10" BorderThickness="1"
+                        Background="{StaticResource Neutral100}" BorderBrush="{StaticResource Neutral400}">
+                    <TextBlock x:Name="Body" Text="{Binding Text}" TextWrapping="Wrap" LineHeight="19.5"
+                               Foreground="{StaticResource TextBrush}"/>
+                </Border>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsUser}" Value="True">
+                    <Setter TargetName="Row" Property="HorizontalAlignment" Value="Right"/>
+                    <Setter TargetName="Bubble" Property="Background" Value="{StaticResource Neutral900}"/>
+                    <Setter TargetName="Bubble" Property="BorderBrush" Value="{StaticResource Neutral900}"/>
+                    <Setter TargetName="Body" Property="Foreground" Value="{StaticResource Neutral100}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Suggestion chip -->
+        <DataTemplate x:Key="SuggestionItem" DataType="{x:Type vm:SuggestionViewModel}">
+            <Button Style="{StaticResource ChipButton}" Content="{Binding Label}" CommandParameter="{Binding Key}"
+                    Command="{Binding DataContext.SuggestionCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+        </DataTemplate>
+
+        <!-- Measurement row (columns share size with the header row) -->
+        <DataTemplate x:Key="MeasurementRow" DataType="{x:Type models:Measurement}">
+            <Border BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="MeasValue"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="MeasSpec"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="12.5" Margin="8,0" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Value}" FontFamily="{StaticResource MonoFont}" FontWeight="SemiBold" FontSize="12.5" Margin="8,0" TextAlignment="Right"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Spec}" FontFamily="{StaticResource MonoFont}" FontSize="12.5"
+                               Foreground="{StaticResource Neutral600}" Margin="8,0" TextAlignment="Right"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="AssertionRow" DataType="{x:Type models:AssertionResult}">
+            <Grid Margin="0,0,0,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="40"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Mark}" FontWeight="ExtraBold" FontSize="11" Foreground="{StaticResource Accent700}" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                <TextBlock Grid.Column="1" Text="{Binding Text}" FontFamily="{StaticResource MonoFont}" FontSize="12.5" Foreground="{StaticResource Neutral800}" TextWrapping="Wrap"/>
+            </Grid>
+        </DataTemplate>
+
+        <!-- One C# cell in the flow -->
+        <DataTemplate x:Key="CellItem" DataType="{x:Type vm:TestCellViewModel}">
+            <Border Margin="0,0,0,16" Background="{StaticResource Neutral100}" BorderBrush="{StaticResource Neutral400}" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="3" ShadowDepth="1" Direction="270" Opacity="0.14" Color="#2D2B2B"/>
+                </Border.Effect>
+                <StackPanel>
+                    <!-- Header -->
+                    <Border BorderThickness="0,0,0,1">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource Neutral200}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource Neutral300}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="Running">
+                                        <Setter Property="Background" Value="{StaticResource Accent100}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource Accent300}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="46"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" BorderBrush="{StaticResource Neutral300}" BorderThickness="0,0,1,0">
+                                <TextBlock Text="{Binding Number}" FontWeight="ExtraBold" FontSize="13" Foreground="{StaticResource Neutral600}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <Button Grid.Column="1" Style="{StaticResource PlainButton}" Padding="14,10"
+                                    HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+                                    Command="{Binding DataContext.ToggleCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontWeight="ExtraBold" FontSize="16" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Meta}" Style="{StaticResource Kicker}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Button>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,8,12,8" VerticalAlignment="Center">
+                                <Border Padding="8,3" BorderThickness="1" VerticalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderBrush" Value="{StaticResource Neutral400}"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="Running">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    <Setter Property="Background" Value="{StaticResource Accent100}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Pass">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource Neutral900}"/>
+                                                    <Setter Property="Background" Value="{StaticResource Neutral900}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource Neutral700}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Running">
+                                                        <Setter Property="Foreground" Value="{StaticResource Accent700}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Pass">
+                                                        <Setter Property="Foreground" Value="{StaticResource WhiteBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Text="{Binding DurationLabel}" FontSize="11" Foreground="{StaticResource Neutral600}"
+                                           MinWidth="52" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0"/>
+                                <Button Style="{StaticResource PrimaryButton}" Content="{Binding RunLabel}" FontSize="12" Padding="12,6" Margin="0,0,10,0"
+                                        Command="{Binding DataContext.RunCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                                <Button Style="{StaticResource SquareButton}" Content="{Binding ToggleGlyph}" ToolTip="{Binding ToggleTip}" AutomationProperties.Name="{Binding ToggleTip}"
+                                        Width="26" Height="26" Margin="0,0,6,0"
+                                        Command="{Binding DataContext.ToggleCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                                <Button Style="{StaticResource SquareButton}" Content="×" Width="26" Height="26" ToolTip="Remove"
+                                        Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Body: editor + results -->
+                    <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                        <Border BorderBrush="{StaticResource Neutral300}" BorderThickness="0,0,0,1" Padding="14,6">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Kicker}">
+                                    <Run Text="{Binding LineCount, Mode=OneWay}"/><Run Text=" LINES"/>
+                                </TextBlock>
+                                <TextBlock Style="{StaticResource Kicker}">
+                                    <Run Text="C# · "/><Run Text="{Binding Driver, Mode=OneWay}"/>
+                                </TextBlock>
+                            </DockPanel>
+                        </Border>
+
+                        <TextBox Style="{StaticResource CodeBox}" Text="{Binding Code, UpdateSourceTrigger=LostFocus}"
+                                 Height="{Binding EditorHeight}"/>
+                        <Border BorderBrush="{StaticResource Neutral300}" BorderThickness="0,1,0,0"/>
+
+                        <Button Style="{StaticResource PlainButton}" Visibility="{Binding IsPassed, Converter={StaticResource BoolToVis}}"
+                                HorizontalContentAlignment="Stretch" Padding="14,6" Background="{StaticResource Neutral200}"
+                                AutomationProperties.Name="{Binding ResultsToggleLabel}"
+                                Command="{Binding DataContext.ToggleResultsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding DurationLabel}" Style="{StaticResource Kicker}"/>
+                                <TextBlock Text="{Binding ResultsToggleLabel}" Style="{StaticResource Kicker}" FontWeight="SemiBold"/>
+                            </DockPanel>
+                        </Button>
+
+                        <Grid>
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsPassed}" Value="True"/>
+                                                <Condition Binding="{Binding ResultsExpanded}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" BorderBrush="{StaticResource Neutral300}" BorderThickness="0,0,1,0" Padding="14,12">
+                                <StackPanel>
+                                    <TextBlock Text="MEASURED" Style="{StaticResource Kicker}" Margin="0,0,0,8"/>
+                                    <StackPanel Grid.IsSharedSizeScope="True">
+                                        <Border BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,2" Padding="0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="MeasValue"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="MeasSpec"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="SIGNAL" Style="{StaticResource Kicker}" FontSize="11" Margin="8,0"/>
+                                                <TextBlock Grid.Column="1" Text="VALUE" Style="{StaticResource Kicker}" FontSize="11" Margin="8,0" TextAlignment="Right"/>
+                                                <TextBlock Grid.Column="2" Text="LIMITS" Style="{StaticResource Kicker}" FontSize="11" Margin="8,0" TextAlignment="Right"/>
+                                            </Grid>
+                                        </Border>
+                                        <ItemsControl ItemsSource="{Binding Measurements}" ItemTemplate="{StaticResource MeasurementRow}" Focusable="False"/>
+                                    </StackPanel>
+                                    <ItemsControl ItemsSource="{Binding Assertions}" ItemTemplate="{StaticResource AssertionRow}" Margin="0,12,0,0" Focusable="False"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Background="{StaticResource Neutral200}" Padding="14,12">
+                                <StackPanel>
+                                    <TextBlock Text="CONSOLE" Style="{StaticResource Kicker}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="{Binding Log}" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                               LineHeight="19.8" LineStackingStrategy="BlockLineHeight" Foreground="{StaticResource Neutral800}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- Library entry: draggable, double-click or + to add -->
+        <DataTemplate x:Key="LibraryItem" DataType="{x:Type models:TestDefinition}">
+            <Border x:Name="Item" Tag="{Binding Key}" Background="Transparent" BorderBrush="{StaticResource Neutral300}" BorderThickness="0,0,0,1"
+                    Padding="16,12" Cursor="Hand" AllowDrop="False"
+                    PreviewMouseLeftButtonDown="LibraryItem_PreviewMouseLeftButtonDown"
+                    PreviewMouseMove="LibraryItem_PreviewMouseMove">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Rectangle Grid.Column="0" Width="3" Fill="{StaticResource Neutral400}" Margin="0,0,10,0"/>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding Name}" FontWeight="ExtraBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Driver}" FontSize="11" Foreground="{StaticResource Neutral600}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Blurb}" FontSize="12" Foreground="{StaticResource Neutral700}" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="16.8"/>
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource SquareButton}" Content="+" Width="24" Height="24" VerticalAlignment="Top" Margin="10,0,0,0"
+                            ToolTip="Add to flow" CommandParameter="{Binding Key}"
+                            Command="{Binding DataContext.AddCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="Item" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Item" Property="Background" Value="{StaticResource Accent100}"/>
+                </Trigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="72"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═════════ Top bar ═════════ -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,2" Padding="16,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock FontSize="12" Foreground="{StaticResource Neutral600}" Margin="0,0,18,0">
+                        <Run Text="TARGET  "/><Run Text="net8.0 / x64" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="12" Foreground="{StaticResource Neutral600}" Margin="0,0,18,0">
+                        <Run Text="DRIVER  "/><Run Text="Instrument.Hal.dll" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+                    </TextBlock>
+                    <Rectangle Width="8" Height="8" Fill="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
+                    <TextBlock Text="BENCH ONLINE" FontSize="12" Foreground="{StaticResource Neutral600}"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="{StaticResource LogoImage}" Width="44" Height="44" Margin="0,0,14,0" VerticalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="BENCHWORKS" FontWeight="ExtraBold" FontSize="22" LineHeight="22" LineStackingStrategy="BlockLineHeight"/>
+                        <TextBlock Text="TEST FLOW BUILDER" FontSize="12" Foreground="{StaticResource Neutral600}" Margin="1,3,0,0"/>
+                    </StackPanel>
+                    <Rectangle Width="2" Height="44" Fill="{StaticResource DividerBrush}" Margin="24,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Project" Foreground="{StaticResource Neutral600}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ProjectName}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ═════════ Three columns ═════════ -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*" MinWidth="210" MaxWidth="320"/>
+                <ColumnDefinition Width="3*" MinWidth="380"/>
+                <ColumnDefinition Width="*" MinWidth="190" MaxWidth="280"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- AI assistant -->
+            <Border Grid.Column="0" Background="{StaticResource Neutral100}" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,2,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,2" Padding="16,12">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="reads flow · writes C#" FontSize="11" Foreground="{StaticResource Neutral600}" VerticalAlignment="Center"/>
+                            <TextBlock Text="AI ASSISTANT" Style="{StaticResource PanelTitle}"/>
+                        </DockPanel>
+                    </Border>
+
+                    <ScrollViewer x:Name="ChatScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="16">
+                            <ItemsControl ItemsSource="{Binding Chat}" ItemTemplate="{StaticResource ChatItem}" Focusable="False"/>
+                            <TextBlock x:Name="Thinking" Text="Assistant is reading the flow…" FontSize="12" Foreground="{StaticResource Neutral600}"
+                                       Visibility="{Binding AiThinking, Converter={StaticResource BoolToVis}}">
+                                <TextBlock.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.35" Duration="0:0:0.5" AutoReverse="True" RepeatBehavior="Forever"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </TextBlock.Triggers>
+                            </TextBlock>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="2" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,2,0,0" Padding="12,10,12,4">
+                        <StackPanel>
+                            <ItemsControl ItemsSource="{Binding Suggestions}" ItemTemplate="{StaticResource SuggestionItem}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <Grid Margin="0,2,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="ChatInput" Grid.Column="0" Style="{StaticResource InputBox}"
+                                         Text="{Binding Draft, UpdateSourceTrigger=PropertyChanged}">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding SendCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <TextBlock Grid.Column="0" Text="Ask about a test, or describe one to add…" FontSize="13"
+                                           Foreground="{StaticResource Neutral600}" IsHitTestVisible="False" VerticalAlignment="Center"
+                                           Margin="11,0,0,0" TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=ChatInput}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Content="Send" Padding="14,0" Margin="8,0,0,0"
+                                        Command="{Binding SendCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Test flow -->
+            <Grid Grid.Column="1" Background="{StaticResource BgBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,2" Padding="20,12">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Style="{StaticResource SecondaryButton}" Content="Run All" FontSize="13" Padding="12,6" Command="{Binding RunAllCommand}"/>
+                            <Button Style="{StaticResource GhostButton}" Content="Clear" FontSize="13" Padding="12,6" Margin="8,0,0,0" Command="{Binding ClearCommand}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="TEST FLOW" Style="{StaticResource PanelTitle}" Margin="0,0,16,0"/>
+                            <TextBlock Text="{Binding FlowSummary}" FontSize="12" Foreground="{StaticResource Neutral600}" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <Grid x:Name="DropZone" Grid.Row="1" AllowDrop="True"
+                      DragOver="DropZone_DragOver" DragLeave="DropZone_DragLeave" Drop="DropZone_Drop">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Background" Value="{StaticResource BgBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DropActive}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource Accent100}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+
+                    <ScrollViewer x:Name="FlowScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="20">
+                            <!-- Empty state -->
+                            <Grid MinHeight="320" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
+                                <Rectangle Stroke="{StaticResource Neutral400}" StrokeThickness="2" StrokeDashArray="4 3" Fill="Transparent"/>
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="48">
+                                    <TextBlock Text="Empty flow" FontWeight="ExtraBold" FontSize="25" Margin="0,0,0,10"/>
+                                    <TextBlock Foreground="{StaticResource Neutral700}" FontSize="14" TextWrapping="Wrap" MaxWidth="400" LineHeight="21"
+                                               Text="Drag a test from the library on the right into this area, or ask the assistant to write one. Each test becomes a C# cell you can edit and run against the connected driver."/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                        <Button Style="{StaticResource PrimaryButton}" Content="Add Power Supply test" CommandParameter="psu_rail"
+                                                Command="{Binding AddCommand}"/>
+                                        <Button Style="{StaticResource SecondaryButton}" Content="Add Versions test" CommandParameter="versions" Margin="10,0,0,0"
+                                                Command="{Binding AddCommand}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{Binding Cells}" ItemTemplate="{StaticResource CellItem}" Focusable="False"/>
+
+                            <!-- Tail drop hint -->
+                            <Grid Visibility="{Binding HasCells, Converter={StaticResource BoolToVis}}">
+                                <Rectangle StrokeThickness="2" StrokeDashArray="4 3" Fill="Transparent">
+                                    <Rectangle.Style>
+                                        <Style TargetType="Rectangle">
+                                            <Setter Property="Stroke" Value="{StaticResource Neutral300}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DropActive}" Value="True">
+                                                    <Setter Property="Stroke" Value="{StaticResource AccentBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Rectangle.Style>
+                                </Rectangle>
+                                <TextBlock Text="DROP A TEST HERE TO APPEND IT TO THE FLOW" FontSize="12" Foreground="{StaticResource Neutral600}" Margin="18"/>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+
+            <!-- Predefined tests -->
+            <Border Grid.Column="2" Background="{StaticResource Neutral100}" BorderBrush="{StaticResource DividerBrush}" BorderThickness="2,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,2" Padding="16,12">
+                        <StackPanel>
+                            <TextBlock Text="PREDEFINED TESTS" Style="{StaticResource PanelTitle}"/>
+                            <TextBlock Text="drag into the flow" FontSize="11" Foreground="{StaticResource Neutral600}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Library}" ItemTemplate="{StaticResource LibraryItem}" Focusable="False"/>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ═════════ Build bar ═════════ -->
+        <Border Grid.Row="2" Background="{StaticResource Neutral200}" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,2,0,0" Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Style="{StaticResource PrimaryButton}" Content="{Binding BuildLabel}" Padding="18,10" MinWidth="120"
+                        Command="{Binding BuildCommand}"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="18,0">
+                    <ProgressBar Style="{StaticResource FlatProgress}" Value="{Binding BuildPercent, Mode=OneWay}"/>
+                    <TextBlock Text="{Binding BuildMessage}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource Neutral700}"
+                               TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
+                </StackPanel>
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource Neutral600}">
+                    <Run Text="OUTPUT  "/><Run Text="bin\Release\net8.0\" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+                </TextBlock>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

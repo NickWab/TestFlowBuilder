@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-42766d74-7cb7-43ad-85c9-e48028adafb9/styles.css">
+<script src="_ds/modernist-42766d74-7cb7-43ad-85c9-e48028adafb9/_ds_bundle.js"></script>
+<style>
+  html, body { height: 100%; overflow: hidden; }
+  a { color: var(--color-accent-700); }
+  a:hover { color: var(--color-accent); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--color-neutral-400); }
+  ::-webkit-scrollbar-track { background: var(--color-neutral-200); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes blink { 50% { opacity: .35; } }
+</style>
+</helmet>
+
+<div style="height: 100vh; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); overflow: hidden;">
+
+  <div style="height: 54px; flex: 0 0 auto; display: flex; align-items: center; gap: 20px; padding: 0 16px; border-bottom: 2px solid var(--color-divider); background: var(--color-bg);">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span style="width: 14px; height: 14px; background: var(--color-accent); display: inline-block;"></span>
+      <span style="font-family: var(--font-heading); font-weight: 800; font-size: 15px; letter-spacing: -0.01em;">BENCHWORKS</span>
+      <span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-600);">Test Flow Builder</span>
+    </div>
+    <div style="width: 2px; align-self: stretch; background: var(--color-divider); margin: 10px 0;"></div>
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+      <span style="color: var(--color-neutral-600);">Project</span>
+      <span style="font-weight: 600;">{{ projectName }}</span>
+    </div>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 18px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-600);">
+      <span>Target &nbsp;<span style="color: var(--color-text); font-weight: 600;">net8.0 / x64</span></span>
+      <span>Driver &nbsp;<span style="color: var(--color-text); font-weight: 600;">Instrument.Hal.dll</span></span>
+      <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; background: var(--color-accent); display: inline-block;"></span>Bench online</span>
+    </div>
+  </div>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(210px, 320px) minmax(380px, 1fr) minmax(190px, 280px);">
+
+    <div style="min-height: 0; display: flex; flex-direction: column; border-right: 2px solid var(--color-divider); background: var(--color-neutral-100);">
+      <div style="flex: 0 0 auto; padding: 12px 16px; border-bottom: 2px solid var(--color-divider); display: flex; align-items: center; justify-content: space-between;">
+        <h6 style="margin: 0;">AI Assistant</h6>
+        <span style="font-size: 11px; color: var(--color-neutral-600);">reads flow · writes C#</span>
+      </div>
+
+      <div style="flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <sc-for list="{{ chat }}" as="msg" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: {{ msg.align }};">
+            <span style="font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600);">{{ msg.who }}</span>
+            <div style="max-width: 94%; padding: 10px 12px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; border: 1px solid {{ msg.border }}; background: {{ msg.bg }}; color: {{ msg.fg }};">{{ msg.text }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ aiThinking }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size: 12px; color: var(--color-neutral-600); animation: blink 1s infinite;">Assistant is reading the flow…</div>
+        </sc-if>
+      </div>
+
+      <div style="flex: 0 0 auto; border-top: 2px solid var(--color-divider); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="3">
+            <button type="button" data-key="{{ s.key }}" onClick="{{ onSuggestion }}" style="cursor: pointer; font-family: var(--font-body); font-size: 11px; padding: 4px 8px; border: 1px solid var(--color-neutral-400); background: transparent; color: var(--color-neutral-800);" style-hover="background: var(--color-accent-100); border-color: var(--color-accent); color: var(--color-accent-700);">{{ s.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <input class="input" type="text" placeholder="Ask about a test, or describe one to add…" value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onChatKey }}" style="flex: 1 1 auto; min-width: 0; font-size: 13px;" />
+          <button type="button" class="btn btn-primary" onClick="{{ onSend }}" style="padding: 0 14px;">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="min-height: 0; display: flex; flex-direction: column; background: var(--color-bg);">
+      <div style="flex: 0 0 auto; padding: 12px 20px; border-bottom: 2px solid var(--color-divider); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;">
+        <h6 style="margin: 0;">Test Flow</h6>
+        <span style="font-size: 12px; color: var(--color-neutral-600);">{{ flowSummary }}</span>
+        <div style="margin-left: auto; display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary" onClick="{{ onRunAll }}" style="font-size: 13px; padding: 6px 12px;">Run All</button>
+          <button type="button" class="btn btn-ghost" onClick="{{ onClear }}" style="font-size: 13px; padding: 6px 12px;">Clear</button>
+        </div>
+      </div>
+
+      <div onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 20px; background: {{ dropBg }};">
+
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ true }}">
+          <div style="height: 100%; min-height: 320px; border: 2px dashed var(--color-neutral-400); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 48px;">
+            <h3 style="margin: 0;">Empty flow</h3>
+            <p style="margin: 0; max-width: 46ch; color: var(--color-neutral-700); font-size: 14px;">Drag a test from the library on the right into this area, or ask the assistant to write one. Each test becomes a C# cell you can edit and run against the connected driver.</p>
+            <div style="display: flex; gap: 10px; margin-top: 6px;">
+              <button type="button" class="btn btn-primary" data-key="psu_rail" onClick="{{ onAddClick }}" style="padding: 8px 14px;">Add Power Supply test</button>
+              <button type="button" class="btn btn-secondary" data-key="versions" onClick="{{ onAddClick }}" style="padding: 8px 14px;">Add Versions test</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-for list="{{ cells }}" as="cell" hint-placeholder-count="0">
+          <div style="border: 1px solid var(--color-neutral-400); background: var(--color-neutral-100); margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+
+            <div style="display: flex; flex-wrap: wrap; align-items: stretch; border-bottom: 1px solid {{ cell.headBorder }}; background: {{ cell.headBg }};">
+              <div style="flex: 0 0 auto; width: 46px; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-weight: 800; font-size: 13px; color: var(--color-neutral-600); border-right: 1px solid var(--color-neutral-300);">{{ cell.n }}</div>
+              <button type="button" data-id="{{ cell.id }}" onClick="{{ onToggle }}" style="flex: 1 1 180px; min-width: 0; text-align: left; cursor: pointer; background: transparent; border: 0; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; font-family: var(--font-body);">
+                <span style="font-family: var(--font-heading); font-weight: 800; font-size: 16px; letter-spacing: -0.01em;">{{ cell.name }}</span>
+                <span style="font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-600);">{{ cell.meta }}</span>
+              </button>
+              <div style="flex: 1 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding: 8px 12px;">
+                <span style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; padding: 3px 8px; border: 1px solid {{ cell.chipBorder }}; color: {{ cell.chipFg }}; background: {{ cell.chipBg }};">{{ cell.statusLabel }}</span>
+                <span style="font-size: 11px; color: var(--color-neutral-600); min-width: 52px; text-align: right;">{{ cell.durationLabel }}</span>
+                <button type="button" data-id="{{ cell.id }}" onClick="{{ onRun }}" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">{{ cell.runLabel }}</button>
+                <button type="button" data-id="{{ cell.id }}" onClick="{{ onRemove }}" title="Remove" style="cursor: pointer; background: transparent; border: 1px solid var(--color-neutral-400); width: 26px; height: 26px; font-size: 14px; line-height: 1; color: var(--color-neutral-700);" style-hover="border-color: var(--color-accent); color: var(--color-accent);">×</button>
+              </div>
+            </div>
+
+            <sc-if value="{{ cell.expanded }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; border-bottom: 1px solid var(--color-neutral-300); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600);">
+                  <span>C# · {{ cell.driver }}</span>
+                  <span>{{ cell.lineCount }} lines</span>
+                </div>
+                <textarea data-id="{{ cell.id }}" value="{{ cell.code }}" onChange="{{ onCode }}" spellcheck="false" rows="{{ cell.rows }}" wrap="off" style="width: 100%; white-space: pre; overflow-x: auto; border: 0; border-bottom: 1px solid var(--color-neutral-300); resize: vertical; padding: 12px 14px; background: #ffffff; color: var(--color-neutral-900); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.6; tab-size: 2;"></textarea>
+
+                <sc-if value="{{ cell.hasResult }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                    <div style="border-right: 1px solid var(--color-neutral-300); padding: 12px 14px;">
+                      <div style="font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); margin-bottom: 8px;">Measured</div>
+                      <table class="table" style="width: 100%; font-size: 12.5px;">
+                        <thead>
+                          <tr>
+                            <th style="text-align: left;">Signal</th>
+                            <th style="text-align: right;">Value</th>
+                            <th style="text-align: right;">Limits</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <sc-for list="{{ cell.measurements }}" as="m" hint-placeholder-count="3">
+                            <tr>
+                              <td style="text-align: left;">{{ m.label }}</td>
+                              <td style="text-align: right; font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 600;">{{ m.value }}</td>
+                              <td style="text-align: right; color: var(--color-neutral-600); font-family: ui-monospace, Menlo, Consolas, monospace;">{{ m.spec }}</td>
+                            </tr>
+                          </sc-for>
+                        </tbody>
+                      </table>
+                      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 5px;">
+                        <sc-for list="{{ cell.asserts }}" as="a" hint-placeholder-count="2">
+                          <div style="display: flex; gap: 8px; align-items: baseline; font-size: 12.5px;">
+                            <span style="font-family: var(--font-heading); font-weight: 800; font-size: 11px; letter-spacing: 0.06em; color: {{ a.fg }};">{{ a.mark }}</span>
+                            <span style="font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--color-neutral-800);">{{ a.text }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div style="padding: 12px 14px; background: var(--color-neutral-200);">
+                      <div style="font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); margin-bottom: 8px;">Console</div>
+                      <pre style="margin: 0; white-space: pre-wrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.65; color: var(--color-neutral-800);">{{ cell.log }}</pre>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ hasCells }}" hint-placeholder-val="{{ false }}">
+          <div style="border: 2px dashed {{ tailBorder }}; padding: 18px; text-align: left; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-600);">Drop a test here to append it to the flow</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="min-height: 0; display: flex; flex-direction: column; border-left: 2px solid var(--color-divider); background: var(--color-neutral-100);">
+      <div style="flex: 0 0 auto; padding: 12px 16px; border-bottom: 2px solid var(--color-divider);">
+        <h6 style="margin: 0;">Predefined Tests</h6>
+        <span style="font-size: 11px; color: var(--color-neutral-600);">drag into the flow</span>
+      </div>
+      <div style="flex: 1 1 auto; min-height: 0; overflow-y: auto;">
+        <sc-for list="{{ library }}" as="lib" hint-placeholder-count="6">
+          <div draggable="true" data-key="{{ lib.key }}" onDragStart="{{ onDragStart }}" onDragEnd="{{ onDragEnd }}" onDoubleClick="{{ onAddClick }}" style="border-bottom: 1px solid var(--color-neutral-300); padding: 12px 16px; cursor: grab; display: flex; gap: 10px; align-items: flex-start; background: transparent;" style-hover="background: var(--color-accent-100);">
+            <span style="flex: 0 0 auto; width: 3px; align-self: stretch; background: var(--color-neutral-400);"></span>
+            <div style="flex: 1 1 auto; min-width: 0;">
+              <div style="font-family: var(--font-heading); font-weight: 800; font-size: 14px;">{{ lib.name }}</div>
+              <div style="font-size: 11px; color: var(--color-neutral-600); margin-top: 2px;">{{ lib.driver }}</div>
+              <div style="font-size: 12px; color: var(--color-neutral-700); margin-top: 4px; line-height: 1.4;">{{ lib.blurb }}</div>
+            </div>
+            <button type="button" data-key="{{ lib.key }}" onClick="{{ onAddClick }}" title="Add to flow" style="flex: 0 0 auto; cursor: pointer; width: 24px; height: 24px; border: 1px solid var(--color-neutral-400); background: transparent; font-size: 14px; line-height: 1; color: var(--color-neutral-700);" style-hover="border-color: var(--color-accent); color: var(--color-accent);">+</button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex: 0 0 auto; border-top: 2px solid var(--color-divider); background: var(--color-neutral-200); padding: 12px 16px; display: flex; align-items: center; gap: 18px;">
+    <button type="button" class="btn btn-primary" onClick="{{ onBuild }}" style="padding: 10px 18px; font-size: 14px;">{{ buildLabel }}</button>
+    <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+      <div style="height: 6px; background: var(--color-neutral-300);">
+        <div style="height: 100%; width: {{ buildPct }}; background: var(--color-accent); transition: width .25s linear;"></div>
+      </div>
+      <div style="font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--color-neutral-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ buildMsg }}</div>
+    </div>
+    <div style="flex: 0 0 auto; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-600);">Output &nbsp;<span style="color: var(--color-text); font-weight: 600;">bin\Release\net8.0\</span></div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startWithSampleFlow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;autoRunOnDrop&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;projectName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;RF-Module Rev C2&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const LIB = [
+  { key: 'psu_rail', name: 'Power Supply', driver: 'Instrument.Hal.PowerSupply', blurb: 'Set a rail, settle, verify voltage and current draw.',
+    code: '// Rail bring-up on CH1\nvar psu = Hal.Open<IPowerSupply>("PSU-3021", channel: 1);\n\npsu.SetVoltage(3.300);\npsu.SetCurrentLimit(0.500);\npsu.OutputEnable(true);\nDelay.Ms(250);            // settle\n\nvar v = psu.MeasureVoltage();\nvar i = psu.MeasureCurrent();\nLog.Info($"CH1 = {v:F4} V @ {i*1000:F1} mA");\n\nAssert.InRange(v, 3.267, 3.333, "rail tolerance +/-1%");\nAssert.Less(i, 0.400, "quiescent current");\npsu.OutputEnable(false);',
+    measurements: [
+      { label: 'CH1 voltage', value: '3.3021 V', spec: '3.267 – 3.333' },
+      { label: 'CH1 current', value: '212.4 mA', spec: '< 400' },
+      { label: 'Settling time', value: '138 ms', spec: '< 250' }
+    ],
+    asserts: [['PASS', 'InRange(v, 3.267, 3.333) — rail tolerance +/-1%'], ['PASS', 'Less(i, 0.400) — quiescent current']],
+    log: '[00.000] open PSU-3021 @ USB0::0x0957\n[00.004] SetVoltage 3.300 V\n[00.006] SetCurrentLimit 0.500 A\n[00.008] OutputEnable true\n[00.146] CH1 = 3.3021 V @ 212.4 mA\n[00.148] OutputEnable false\n[00.149] 2 assertions, 0 failed', duration: 0.62 },
+
+  { key: 'adc', name: 'ADC Linearity', driver: 'Instrument.Hal.Adc', blurb: 'Sweep the reference and check code error across channels.',
+    code: '// 16-bit ADC sweep on CH0\nvar adc = Hal.Open<IAdc>("ADS8681");\nvar src = Hal.Open<ISourceMeter>("SMU-2450");\n\nadc.Configure(bits: 16, refVolts: 4.096, rate: 100_000);\n\nforeach (var target in new[] { 0.5, 1.0, 2.0, 3.0, 4.0 })\n{\n    src.SetVoltage(target);\n    Delay.Ms(20);\n    var code = adc.ReadRaw(channel: 0);\n    var volts = code * 4.096 / 65536.0;\n    Log.Info($"{target:F1} V -> code {code} ({volts:F4} V)");\n    Assert.Near(volts, target, 0.002, $"linearity @ {target} V");\n}',
+    measurements: [
+      { label: 'INL (max)', value: '0.8 LSB', spec: '< 2.0' },
+      { label: 'DNL (max)', value: '0.4 LSB', spec: '< 1.0' },
+      { label: 'Offset error', value: '1.2 mV', spec: '< 5.0' },
+      { label: 'Gain error', value: '0.03 %', spec: '< 0.10' }
+    ],
+    asserts: [['PASS', 'Near(volts, target, 0.002) × 5 points'], ['PASS', 'INL within datasheet limit']],
+    log: '[00.000] ADS8681 configured 16b / 4.096 V / 100 kSPS\n[00.021] 0.5 V -> code 8003 (0.5002 V)\n[00.043] 1.0 V -> code 16004 (1.0003 V)\n[00.065] 2.0 V -> code 32009 (2.0006 V)\n[00.088] 3.0 V -> code 48011 (3.0007 V)\n[00.110] 4.0 V -> code 64014 (4.0009 V)\n[00.112] 5 assertions, 0 failed', duration: 1.04 },
+
+  { key: 'versions', name: 'Versions', driver: 'Instrument.Hal.Device', blurb: 'Read firmware, bootloader and driver versions; match manifest.',
+    code: '// Identity and version manifest\nvar dev = Hal.Open<IDevice>("DUT");\n\nvar fw   = dev.ReadVersion(VersionKind.Firmware);\nvar boot = dev.ReadVersion(VersionKind.Bootloader);\nvar hw   = dev.ReadVersion(VersionKind.Hardware);\nvar drv  = Hal.DriverVersion;\n\nLog.Info($"fw {fw} / boot {boot} / hw {hw} / drv {drv}");\n\nAssert.Equal(fw,  Manifest.Expected.Firmware);\nAssert.Equal(boot, Manifest.Expected.Bootloader);\nAssert.AtLeast(drv, new Version(4, 2, 0));',
+    measurements: [
+      { label: 'Firmware', value: '2.7.4', spec: '= 2.7.4' },
+      { label: 'Bootloader', value: '1.0.9', spec: '= 1.0.9' },
+      { label: 'Hardware rev', value: 'C2', spec: 'B1 | C2' },
+      { label: 'Driver', value: '4.3.1', spec: '>= 4.2.0' }
+    ],
+    asserts: [['PASS', 'Equal(fw, 2.7.4)'], ['PASS', 'Equal(boot, 1.0.9)'], ['PASS', 'AtLeast(drv, 4.2.0)']],
+    log: '[00.000] DUT enumerated on COM7\n[00.031] fw 2.7.4 / boot 1.0.9 / hw C2 / drv 4.3.1\n[00.033] 3 assertions, 0 failed', duration: 0.21 },
+
+  { key: 'dmm', name: 'DMM Measure', driver: 'Instrument.Hal.Dmm', blurb: '4-wire resistance and DC voltage against a reference.',
+    code: '// 4-wire shunt check\nvar dmm = Hal.Open<IDmm>("DMM-34465A");\ndmm.Function = DmmFunction.FourWireResistance;\ndmm.NPLC = 10;\n\nvar r = dmm.Measure();\nLog.Info($"R_shunt = {r*1000:F3} mOhm");\nAssert.Near(r, 0.100, 0.001, "shunt 100 mOhm +/-1%");',
+    measurements: [
+      { label: 'R shunt', value: '99.82 mΩ', spec: '99.0 – 101.0' },
+      { label: 'Lead resistance', value: '0.4 mΩ', spec: '< 5.0' }
+    ],
+    asserts: [['PASS', 'Near(r, 0.100, 0.001) — shunt 100 mOhm +/-1%']],
+    log: '[00.000] DMM-34465A · 4W resistance · NPLC 10\n[00.201] R_shunt = 99.820 mOhm\n[00.202] 1 assertion, 0 failed', duration: 0.44 },
+
+  { key: 'i2c', name: 'I2C Bus Scan', driver: 'Instrument.Hal.I2c', blurb: 'Enumerate addresses and confirm the expected device map.',
+    code: '// Bus inventory at 400 kHz\nvar bus = Hal.Open<II2cMaster>("FT4222", speedHz: 400_000);\nvar found = bus.Scan(0x08, 0x77);\n\nLog.Info("found: " + string.Join(", ", found.Select(a => $"0x{a:X2}")));\nAssert.Contains(found, 0x48, "ADC");\nAssert.Contains(found, 0x50, "EEPROM");\nAssert.Equal(found.Count, 3);',
+    measurements: [
+      { label: 'Devices found', value: '3', spec: '= 3' },
+      { label: 'Bus speed', value: '399.6 kHz', spec: '380 – 420' },
+      { label: 'Rise time', value: '186 ns', spec: '< 300' }
+    ],
+    asserts: [['PASS', 'Contains(found, 0x48) — ADC'], ['PASS', 'Contains(found, 0x50) — EEPROM'], ['PASS', 'Equal(found.Count, 3)']],
+    log: '[00.000] FT4222 master @ 400 kHz\n[00.058] found: 0x48, 0x50, 0x68\n[00.060] 3 assertions, 0 failed', duration: 0.33 },
+
+  { key: 'temp', name: 'Thermal Soak', driver: 'Instrument.Hal.Thermal', blurb: 'Hold a setpoint and verify sensor agreement while loaded.',
+    code: '// 15 s soak at 55 C\nvar ch = Hal.Open<IThermalChamber>("TC-500");\nvar dut = Hal.Open<IDevice>("DUT");\n\nch.SetPoint(55.0);\nch.WaitStable(toleranceC: 0.5, timeout: TimeSpan.FromMinutes(4));\n\nvar tDut = dut.ReadSensor(SensorId.Die);\nvar tRef = ch.ReadProbe();\nAssert.Near(tDut, tRef, 2.0, "die vs chamber probe");',
+    measurements: [
+      { label: 'Chamber probe', value: '55.1 °C', spec: '54.5 – 55.5' },
+      { label: 'Die sensor', value: '56.4 °C', spec: '± 2.0 of probe' },
+      { label: 'Soak time', value: '15.0 s', spec: '>= 15' }
+    ],
+    asserts: [['PASS', 'Near(tDut, tRef, 2.0) — die vs chamber probe']],
+    log: '[00.000] TC-500 setpoint 55.0 C\n[02.140] stable within 0.5 C\n[17.142] die 56.4 C / probe 55.1 C\n[17.143] 1 assertion, 0 failed', duration: 2.10 },
+
+  { key: 'gpio', name: 'Digital I/O Loopback', driver: 'Instrument.Hal.Gpio', blurb: 'Walk a pattern across the header and read it back.',
+    code: '// Walking-ones loopback, 16 pins\nvar io = Hal.Open<IGpio>("DIO-32");\nio.SetDirection(0x0000FFFF, Direction.Output);\n\nfor (int bit = 0; bit < 16; bit++)\n{\n    uint pattern = 1u << bit;\n    io.Write(pattern);\n    Delay.Us(50);\n    uint read = io.Read() >> 16;\n    Assert.Equal(read, pattern, $"loopback bit {bit}");\n}',
+    measurements: [
+      { label: 'Patterns tested', value: '16', spec: '= 16' },
+      { label: 'Mismatches', value: '0', spec: '= 0' },
+      { label: 'Propagation', value: '38 ns', spec: '< 100' }
+    ],
+    asserts: [['PASS', 'Equal(read, pattern) × 16 bits']],
+    log: '[00.000] DIO-32 direction mask 0x0000FFFF\n[00.019] walking ones 0x0001 … 0x8000\n[00.020] 16 assertions, 0 failed', duration: 0.28 },
+
+  { key: 'eeprom', name: 'EEPROM Read/Write', driver: 'Instrument.Hal.Storage', blurb: 'Round-trip the calibration page and restore contents.',
+    code: '// Non-destructive page round-trip\nvar mem = Hal.Open<IEeprom>("24LC256", address: 0x50);\nvar backup = mem.Read(page: 4, length: 64);\n\nvar pattern = Bytes.Random(64, seed: 7);\nmem.Write(page: 4, pattern);\nDelay.Ms(6);                   // write cycle\nvar back = mem.Read(page: 4, length: 64);\n\nAssert.SequenceEqual(back, pattern, "page 4 round-trip");\nmem.Write(page: 4, backup);    // restore',
+    measurements: [
+      { label: 'Bytes verified', value: '64', spec: '= 64' },
+      { label: 'Write cycle', value: '4.8 ms', spec: '< 6.0' },
+      { label: 'Bit errors', value: '0', spec: '= 0' }
+    ],
+    asserts: [['PASS', 'SequenceEqual(back, pattern) — page 4 round-trip'], ['PASS', 'backup restored']],
+    log: '[00.000] 24LC256 @ 0x50\n[00.012] page 4 backed up (64 B)\n[00.019] wrote 64 B, verified 64 B\n[00.027] page 4 restored\n[00.028] 2 assertions, 0 failed', duration: 0.37 }
+];
+
+const SUGGESTIONS = [
+  { key: 'explain', label: 'Explain the ADC test' },
+  { key: 'create', label: 'Write a 1.8V rail test' },
+  { key: 'order', label: 'Review flow order' }
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const seed = props.startWithSampleFlow ? ['psu_rail', 'adc', 'versions'].map((k, i) => this.make(k, i)) : [];
+    this.state = {
+      cells: seed,
+      chat: [{ who: 'Assistant', text: 'Bench is online and Instrument.Hal.dll is loaded. Drag tests in from the library, or tell me what to measure and I will write the cell.', isUser: false }],
+      draft: '', aiThinking: false, dragOver: false, seq: seed.length,
+      buildState: 'idle', buildPct: 0, buildMsg: 'Ready. 0 cells compiled.'
+    };
+    this.dragKey = null;
+  }
+
+  make(key, i) {
+    const lib = LIB.find(l => l.key === key) || LIB[0];
+    return { id: 'c' + Date.now().toString(36) + '_' + i + Math.random().toString(36).slice(2, 6), key: lib.key, name: lib.name,
+      driver: lib.driver, code: lib.code, status: 'idle', expanded: true, duration: null, lib };
+  }
+
+  add(key) {
+    this.setState(s => ({ cells: s.cells.concat([this.make(key, s.seq)]), seq: s.seq + 1, dragOver: false }));
+    if (this.props.autoRunOnDrop) setTimeout(() => {
+      const last = this.state.cells[this.state.cells.length - 1];
+      if (last) this.run(last.id);
+    }, 120);
+  }
+
+  run(id) {
+    this.setState(s => ({ cells: s.cells.map(c => c.id === id ? { ...c, status: 'running', expanded: true } : c) }));
+    const cell = this.state.cells.find(c => c.id === id);
+    const ms = Math.round((cell && cell.lib.duration ? cell.lib.duration : 0.5) * 700);
+    setTimeout(() => {
+      this.setState(s => ({ cells: s.cells.map(c => c.id === id ? { ...c, status: 'pass', duration: c.lib.duration } : c) }));
+      this.bumpBuild();
+    }, ms);
+  }
+
+  bumpBuild() {
+    if (this.state.buildState === 'done') this.setState({ buildState: 'idle', buildPct: 0, buildMsg: 'Flow changed since last build.' });
+  }
+
+  say(text, isUser) { this.setState(s => ({ chat: s.chat.concat([{ who: isUser ? 'You' : 'Assistant', text, isUser }]) })); }
+
+  reply(q) {
+    this.setState({ aiThinking: true });
+    setTimeout(() => {
+      this.setState({ aiThinking: false });
+      const t = q.toLowerCase();
+      if (t.includes('adc') || t.includes('explain')) {
+        this.say('The ADC cell sweeps an SMU across five setpoints and compares each converted code against the applied voltage.\n\nIt asserts Near(volts, target, 0.002), so a point fails if the converted value drifts more than 2 mV. Last run: INL 0.8 LSB, offset 1.2 mV — comfortably inside the datasheet limits.');
+      } else if (t.includes('1.8') || t.includes('write') || t.includes('create') || t.includes('add')) {
+        const cells = this.state.cells.concat([{ ...this.make('psu_rail', this.state.seq), name: '1.8V Rail Margin', driver: 'Instrument.Hal.PowerSupply',
+          code: '// 1.8V rail margin, CH2 (generated)\nvar psu = Hal.Open<IPowerSupply>("PSU-3021", channel: 2);\n\nforeach (var v in new[] { 1.710, 1.800, 1.890 })  // -5%, nom, +5%\n{\n    psu.SetVoltage(v);\n    psu.OutputEnable(true);\n    Delay.Ms(200);\n\n    var meas = psu.MeasureVoltage();\n    var dut  = Hal.Open<IDevice>("DUT");\n    Assert.Near(meas, v, 0.010, $"rail set {v:F3} V");\n    Assert.True(dut.SelfTest().Passed, $"DUT self-test @ {v:F3} V");\n}\npsu.OutputEnable(false);' }]);
+        this.setState(s => ({ cells, seq: s.seq + 1 }));
+        this.say('Added "1.8V Rail Margin" as cell ' + cells.length + '. It walks -5% / nominal / +5% on CH2 and runs the DUT self-test at each corner. Edit the corners in the cell, then hit Run.');
+      } else if (t.includes('order')) {
+        this.say('Put Versions first — if the firmware is wrong, every downstream limit is meaningless. Power Supply next so the rails are up before the ADC sweep, and leave Thermal Soak last since it holds the bench for minutes.');
+      } else {
+        this.say('Noted. I can explain any cell, rewrite its C# against a different driver, or add a new test to the flow — tell me the signal and the limits and I will draft it.');
+      }
+    }, 750);
+  }
+
+  send(text) { const q = (text || '').trim(); if (!q) return; this.say(q, true); this.setState({ draft: '' }); this.reply(q); }
+
+  build() {
+    if (this.state.buildState === 'building') return;
+    const n = this.state.cells.length;
+    if (!n) { this.setState({ buildMsg: 'Nothing to build — the flow is empty.' }); return; }
+    this.setState({ buildState: 'building', buildPct: 8, buildMsg: 'Restoring packages…' });
+    const steps = [[400, 32, 'Emitting ' + n + ' test class' + (n === 1 ? '' : 'es') + '…'], [800, 62, 'csc → TestFlow.dll'], [1200, 88, 'Signing and copying to bin\\Release\\net8.0\\'],
+      [1600, 100, 'Build succeeded · TestFlow.dll · ' + n + ' tests · ' + (24 + n * 6) + ' KB']];
+    steps.forEach(([d, p, m]) => setTimeout(() => this.setState({ buildPct: p, buildMsg: m, buildState: p === 100 ? 'done' : 'building' }), d));
+  }
+
+  renderVals() {
+    const S = {
+      idle:    { label: 'Not run', fg: 'var(--color-neutral-700)', bg: 'transparent', border: 'var(--color-neutral-400)', head: 'var(--color-neutral-200)', hb: 'var(--color-neutral-300)' },
+      running: { label: 'Running', fg: 'var(--color-accent-700)', bg: 'var(--color-accent-100)', border: 'var(--color-accent)', head: 'var(--color-accent-100)', hb: 'var(--color-accent-300)' },
+      pass:    { label: 'Passed', fg: '#ffffff', bg: 'var(--color-neutral-900)', border: 'var(--color-neutral-900)', head: 'var(--color-neutral-200)', hb: 'var(--color-neutral-300)' }
+    };
+    const cells = this.state.cells.map((c, i) => {
+      const st = S[c.status];
+      const done = c.status === 'pass';
+      return { id: c.id, n: String(i + 1).padStart(2, '0'), name: c.name, driver: c.driver, code: c.code,
+        meta: c.driver.split('.').pop() + ' · ' + (c.code.split('\n').length) + ' statements',
+        lineCount: c.code.split('\n').length, rows: Math.min(22, c.code.split('\n').length + 1),
+        expanded: c.expanded, statusLabel: st.label, chipFg: st.fg, chipBg: st.bg, chipBorder: st.border,
+        headBg: st.head, headBorder: st.hb, runLabel: c.status === 'running' ? 'Running' : 'Run',
+        durationLabel: done ? c.duration.toFixed(2) + ' s' : '—',
+        hasResult: done, measurements: c.lib.measurements, log: c.lib.log,
+        asserts: c.lib.asserts.map(a => ({ mark: a[0], text: a[1], fg: 'var(--color-accent-700)' })) };
+    });
+    const passed = this.state.cells.filter(c => c.status === 'pass').length;
+    return {
+      projectName: this.props.projectName ?? 'RF-Module Rev C2',
+      library: LIB.map(l => ({ key: l.key, name: l.name, driver: l.driver, blurb: l.blurb })),
+      suggestions: SUGGESTIONS,
+      cells, isEmpty: cells.length === 0, hasCells: cells.length > 0,
+      flowSummary: cells.length ? cells.length + ' cells · ' + passed + ' passed · ' + (cells.length - passed) + ' not run' : 'no cells yet',
+      dropBg: this.state.dragOver ? 'var(--color-accent-100)' : 'var(--color-bg)',
+      tailBorder: this.state.dragOver ? 'var(--color-accent)' : 'var(--color-neutral-300)',
+      chat: this.state.chat.map(m => ({ who: m.who, text: m.text, align: m.isUser ? 'flex-end' : 'flex-start',
+        bg: m.isUser ? 'var(--color-neutral-900)' : 'var(--color-neutral-100)', fg: m.isUser ? 'var(--color-neutral-100)' : 'var(--color-text)',
+        border: m.isUser ? 'var(--color-neutral-900)' : 'var(--color-neutral-400)' })),
+      aiThinking: this.state.aiThinking, draft: this.state.draft,
+      buildLabel: this.state.buildState === 'building' ? 'Building…' : this.state.buildState === 'done' ? 'Rebuild' : 'Build Tests',
+      buildPct: this.state.buildPct + '%', buildMsg: this.state.buildMsg,
+      onAddClick: e => { e.stopPropagation(); this.add(e.currentTarget.dataset.key); },
+      onDragStart: e => { this.dragKey = e.currentTarget.dataset.key; e.dataTransfer.effectAllowed = 'copy'; try { e.dataTransfer.setData('text/plain', this.dragKey); } catch (_) {} },
+      onDragEnd: () => { this.dragKey = null; this.setState({ dragOver: false }); },
+      onDragOver: e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (!this.state.dragOver) this.setState({ dragOver: true }); },
+      onDragLeave: e => { if (e.currentTarget.contains(e.relatedTarget)) return; this.setState({ dragOver: false }); },
+      onDrop: e => { e.preventDefault(); let k = this.dragKey; try { k = k || e.dataTransfer.getData('text/plain'); } catch (_) {} if (k && LIB.some(l => l.key === k)) this.add(k); else this.setState({ dragOver: false }); this.dragKey = null; },
+      onToggle: e => { const id = e.currentTarget.dataset.id; this.setState(s => ({ cells: s.cells.map(c => c.id === id ? { ...c, expanded: !c.expanded } : c) })); },
+      onRun: e => { e.stopPropagation(); this.run(e.currentTarget.dataset.id); },
+      onRemove: e => { e.stopPropagation(); const id = e.currentTarget.dataset.id; this.setState(s => ({ cells: s.cells.filter(c => c.id !== id) })); this.bumpBuild(); },
+      onCode: e => { const id = e.target.dataset.id, v = e.target.value; this.setState(s => ({ cells: s.cells.map(c => c.id === id ? { ...c, code: v } : c) })); },
+      onRunAll: () => this.state.cells.forEach((c, i) => setTimeout(() => this.run(c.id), i * 250)),
+      onClear: () => this.setState({ cells: [], buildPct: 0, buildMsg: 'Flow cleared.', buildState: 'idle' }),
+      onDraft: e => this.setState({ draft: e.target.value }),
+      onChatKey: e => { if (e.key === 'Enter') this.send(e.target.value); },
+      onSend: () => this.send(this.state.draft),
+      onSuggestion: e => { const k = e.currentTarget.dataset.key; this.send(SUGGESTIONS.find(s => s.key === k).label); },
+      onBuild: () => this.build()
+    };
+  }
+}
+
+</script>
+</body>
+</html>
